@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python -c \"import ast; ast.parse\\(open\\('api/routers/backend_management.py', encoding='utf-8'\\).read\\(\\)\\); print\\('backend_management.py: OK'\\)\")",
+      "Bash(python -c \"import ast; ast.parse\\(open\\('api/main.py', encoding='utf-8'\\).read\\(\\)\\); print\\('main.py: OK'\\)\")",
+      "Bash(python -m uvicorn api.main:app --host 0.0.0.0 --port 8000 --reload)",
+      "Bash(streamlit run *)"
+    ]
+  }
+}

@@ -1,0 +1,30 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+htmlcov/
+.coverage
+.venv/
+venv/
+
+# 环境与密钥
+.env
+
+# 数据库与日志
+*.db
+logs/
+
+# 模型产物（训练生成，不入库；目录用 .gitkeep 占位）
+models/cache/
+models/saved/*.joblib
+models/saved/*.json
+data/models/*.pt
+data/models/*.json
+
+# 工作区辅助目录
+.workbuddy/
+
+# IDE
+.idea/
+.vscode/

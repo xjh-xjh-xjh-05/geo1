@@ -1,0 +1,2157 @@
+openapi: 3.0.3
+info:
+  title: 商用地理信息虚假内容检查与反投喂平台 API
+  description: |
+    ## 概述
+    本API提供地理信息虚假内容检测服务，支持单条/批量检测、规则管理、审核标注、统计报表等功能。
+    
+    ## 认证方式
+    - **JWT Token**: 用于Web端用户认证，在Header中添加 `Authorization: Bearer <token>`
+    - **API Key**: 用于服务端对接，在Header中添加 `X-API-Key: <api_key>`
+    
+    ## 请求限制
+    - 基础版: 10,000次/天
+    - 专业版: 50,000次/天
+    - 企业版: 不限制
+    
+    ## 错误码
+    | 错误码 | 说明 |
+    |--------|------|
+    | 400 | 请求参数错误 |
+    | 401 | 未授权/Token过期 |
+    | 403 | 权限不足 |
+    | 404 | 资源不存在 |
+    | 429 | 请求频率超限 |
+    | 500 | 服务器内部错误 |
+    
+  version: 1.0.0
+  contact:
+    name: API Support
+    email: api@geo-fake-detection.com
+
+servers:
+  - url: https://api.geo-fake-detection.com/v1
+    description: 生产环境
+  - url: https://api-staging.geo-fake-detection.com/v1
+    description: 测试环境
+
+tags:
+  - name: Auth
+    description: 认证授权
+  - name: Detect
+    description: 检测服务
+  - name: Records
+    description: 记录管理
+  - name: Review
+    description: 审核管理
+  - name: Rules
+    description: 规则管理
+  - name: Keywords
+    description: 关键词管理
+  - name: Stats
+    description: 统计报表
+  - name: Alerts
+    description: 告警管理
+  - name: Users
+    description: 用户管理
+  - name: System
+    description: 系统管理
+
+paths:
+  # ============================================
+  # 认证接口
+  # ============================================
+  /auth/login:
+    post:
+      tags: [Auth]
+      summary: 用户登录
+      description: 使用用户名密码登录，获取JWT Token
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [username, password]
+              properties:
+                username:
+                  type: string
+                  example: admin
+                password:
+                  type: string
+                  format: password
+                  example: "******"
+      responses:
+        '200':
+          description: 登录成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoginResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /auth/logout:
+    post:
+      tags: [Auth]
+      summary: 用户登出
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: 登出成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+
+  /auth/refresh:
+    post:
+      tags: [Auth]
+      summary: 刷新Token
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [refresh_token]
+              properties:
+                refresh_token:
+                  type: string
+      responses:
+        '200':
+          description: 刷新成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoginResponse'
+
+  /auth/api-keys:
+    get:
+      tags: [Auth]
+      summary: 获取API Key列表
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/ApiKey'
+
+    post:
+      tags: [Auth]
+      summary: 创建API Key
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name]
+              properties:
+                name:
+                  type: string
+                  example: "Production API Key"
+                permissions:
+                  type: array
+                  items:
+                    type: string
+                  example: ["detect:read", "detect:write"]
+                ip_whitelist:
+                  type: array
+                  items:
+                    type: string
+                  example: ["192.168.1.0/24"]
+                rate_limit:
+                  type: integer
+                  example: 1000
+                expire_days:
+                  type: integer
+                  example: 365
+      responses:
+        '200':
+          description: 创建成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      api_key:
+                        type: string
+                        description: API密钥（仅显示一次）
+                        example: "gfd_live_sk_xxxxxxxxxxxxxxxxxxxxxx"
+
+  # ============================================
+  # 检测接口
+  # ============================================
+  /detect/single:
+    post:
+      tags: [Detect]
+      summary: 单条检测
+      description: 检测单条地理信息内容是否为虚假
+      security:
+        - bearerAuth: []
+        - apiKeyAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DetectionRequest'
+            examples:
+              review:
+                summary: 评价检测
+                value:
+                  device_id: "D_001"
+                  user_id: "U_001"
+                  timestamp: 1709500800
+                  geo:
+                    latitude: 39.9042
+                    longitude: 116.4074
+                    accuracy: 10.0
+                    source: "GPS"
+                  content:
+                    text: "这家店超级超级推荐！环境很好！"
+                    type: "review"
+              checkin:
+                summary: 签到检测
+                value:
+                  device_id: "D_002"
+                  user_id: "U_002"
+                  timestamp: 1709500800
+                  geo:
+                    latitude: 31.2304
+                    longitude: 121.4737
+                    source: "WIFI"
+                  content:
+                    text: "打卡成功"
+                    type: "checkin"
+      responses:
+        '200':
+          description: 检测成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DetectionResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
+
+  /detect/batch:
+    post:
+      tags: [Detect]
+      summary: 批量检测
+      description: 批量检测多条记录，最多支持1000条
+      security:
+        - bearerAuth: []
+        - apiKeyAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [records]
+              properties:
+                records:
+                  type: array
+                  maxItems: 1000
+                  items:
+                    $ref: '#/components/schemas/DetectionRequest'
+                options:
+                  type: object
+                  properties:
+                    enable_clustering:
+                      type: boolean
+                      default: true
+                      description: 是否启用聚类分析
+                    return_details:
+                      type: boolean
+                      default: false
+                      description: 是否返回详细信息
+      responses:
+        '200':
+          description: 检测成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BatchDetectionResponse'
+
+  /detect/result/{record_id}:
+    get:
+      tags: [Detect]
+      summary: 获取检测结果
+      security:
+        - bearerAuth: []
+        - apiKeyAuth: []
+      parameters:
+        - name: record_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DetectionResponse'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /detect/history:
+    get:
+      tags: [Detect]
+      summary: 检测历史
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/PageSizeParam'
+        - name: start_date
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: end_date
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: risk_level
+          in: query
+          schema:
+            type: string
+            enum: [low, medium, high]
+        - name: is_fake
+          in: query
+          schema:
+            type: boolean
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedResponse'
+
+  # ============================================
+  # 记录管理
+  # ============================================
+  /records:
+    get:
+      tags: [Records]
+      summary: 记录列表
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/PageSizeParam'
+        - name: device_id
+          in: query
+          schema:
+            type: string
+        - name: user_id
+          in: query
+          schema:
+            type: string
+        - name: risk_level
+          in: query
+          schema:
+            type: string
+            enum: [low, medium, high]
+        - name: review_status
+          in: query
+          schema:
+            type: string
+            enum: [pending, approved, rejected, escalated]
+        - name: start_date
+          in: query
+          schema:
+            type: string
+            format: date-time
+        - name: end_date
+          in: query
+          schema:
+            type: string
+            format: date-time
+        - name: keyword
+          in: query
+          description: 内容关键词搜索
+          schema:
+            type: string
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedResponse'
+
+  /records/{id}:
+    get:
+      tags: [Records]
+      summary: 记录详情
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DetectionRecord'
+
+    delete:
+      tags: [Records]
+      summary: 删除记录
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: 删除成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+
+  /records/{id}/label:
+    put:
+      tags: [Records]
+      summary: 标注记录
+      description: 为记录添加真实标签，用于模型训练
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [ground_truth]
+              properties:
+                ground_truth:
+                  type: boolean
+                  description: 真实标签
+                feedback_type:
+                  type: string
+                  enum: [false_positive, false_negative, correct]
+                feedback_comment:
+                  type: string
+      responses:
+        '200':
+          description: 标注成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+
+  /records/export:
+    post:
+      tags: [Records]
+      summary: 导出记录
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                format:
+                  type: string
+                  enum: [csv, json, excel]
+                  default: csv
+                filters:
+                  type: object
+                fields:
+                  type: array
+                  items:
+                    type: string
+      responses:
+        '200':
+          description: 导出成功
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+
+  # ============================================
+  # 审核接口
+  # ============================================
+  /review/pending:
+    get:
+      tags: [Review]
+      summary: 待审核列表
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/PageSizeParam'
+        - name: risk_level
+          in: query
+          schema:
+            type: string
+            enum: [low, medium, high]
+        - name: priority
+          in: query
+          schema:
+            type: string
+            enum: [low, normal, high, urgent]
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedResponse'
+
+  /review/approve/{id}:
+    post:
+      tags: [Review]
+      summary: 审核通过
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                comment:
+                  type: string
+                ground_truth:
+                  type: boolean
+      responses:
+        '200':
+          description: 审核成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+
+  /review/reject/{id}:
+    post:
+      tags: [Review]
+      summary: 审核拒绝
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [reason]
+              properties:
+                reason:
+                  type: string
+                ground_truth:
+                  type: boolean
+      responses:
+        '200':
+          description: 审核成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+
+  /review/escalate/{id}:
+    post:
+      tags: [Review]
+      summary: 升级处理
+      description: 将记录升级到更高级别审核
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [reason]
+              properties:
+                reason:
+                  type: string
+                escalate_to:
+                  type: string
+                  enum: [senior, expert]
+      responses:
+        '200':
+          description: 升级成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+
+  /review/history:
+    get:
+      tags: [Review]
+      summary: 审核历史
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/PageSizeParam'
+        - name: reviewer_id
+          in: query
+          schema:
+            type: integer
+        - name: action
+          in: query
+          schema:
+            type: string
+            enum: [approve, reject, escalate]
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedResponse'
+
+  # ============================================
+  # 规则管理
+  # ============================================
+  /rules:
+    get:
+      tags: [Rules]
+      summary: 规则列表
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: rule_type
+          in: query
+          schema:
+            type: string
+            enum: [geo, text, simhash, semantic]
+        - name: enabled
+          in: query
+          schema:
+            type: boolean
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/RuleConfig'
+
+    post:
+      tags: [Rules]
+      summary: 创建规则
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RuleConfigCreate'
+      responses:
+        '200':
+          description: 创建成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RuleConfig'
+
+  /rules/{id}:
+    get:
+      tags: [Rules]
+      summary: 规则详情
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RuleConfig'
+
+    put:
+      tags: [Rules]
+      summary: 更新规则
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RuleConfigUpdate'
+      responses:
+        '200':
+          description: 更新成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RuleConfig'
+
+    delete:
+      tags: [Rules]
+      summary: 删除规则
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: 删除成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+
+  /rules/test:
+    post:
+      tags: [Rules]
+      summary: 测试规则
+      description: 使用测试数据验证规则效果
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [rule, test_data]
+              properties:
+                rule:
+                  $ref: '#/components/schemas/RuleConfigCreate'
+                test_data:
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/DetectionRequest'
+      responses:
+        '200':
+          description: 测试结果
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  hit_count:
+                    type: integer
+                  total_count:
+                    type: integer
+                  hit_rate:
+                    type: number
+                  examples:
+                    type: array
+                    items:
+                      type: object
+
+  # ============================================
+  # 关键词管理
+  # ============================================
+  /keywords:
+    get:
+      tags: [Keywords]
+      summary: 关键词列表
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: category
+          in: query
+          schema:
+            type: string
+        - name: enabled
+          in: query
+          schema:
+            type: boolean
+        - name: keyword
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Keyword'
+
+    post:
+      tags: [Keywords]
+      summary: 添加关键词
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/KeywordCreate'
+      responses:
+        '200':
+          description: 添加成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Keyword'
+
+  /keywords/{id}:
+    put:
+      tags: [Keywords]
+      summary: 更新关键词
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/KeywordUpdate'
+      responses:
+        '200':
+          description: 更新成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Keyword'
+
+    delete:
+      tags: [Keywords]
+      summary: 删除关键词
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: 删除成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+
+  /keywords/import:
+    post:
+      tags: [Keywords]
+      summary: 批量导入关键词
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                file:
+                  type: string
+                  format: binary
+                category:
+                  type: string
+      responses:
+        '200':
+          description: 导入成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  imported_count:
+                    type: integer
+                  skipped_count:
+                    type: integer
+
+  /keywords/export:
+    get:
+      tags: [Keywords]
+      summary: 导出关键词
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: category
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: 导出成功
+          content:
+            text/csv:
+              schema:
+                type: string
+
+  # ============================================
+  # 统计报表
+  # ============================================
+  /stats/overview:
+    get:
+      tags: [Stats]
+      summary: 总览统计
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: period
+          in: query
+          schema:
+            type: string
+            enum: [today, yesterday, week, month, custom]
+            default: today
+        - name: start_date
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: end_date
+          in: query
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StatsOverview'
+
+  /stats/trend:
+    get:
+      tags: [Stats]
+      summary: 趋势分析
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: metric
+          in: query
+          schema:
+            type: string
+            enum: [total, fake_rate, risk_distribution, api_calls]
+        - name: granularity
+          in: query
+          schema:
+            type: string
+            enum: [hour, day, week, month]
+            default: day
+        - name: start_date
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date
+        - name: end_date
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        time:
+                          type: string
+                        value:
+                          type: number
+
+  /stats/distribution:
+    get:
+      tags: [Stats]
+      summary: 分布统计
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: dimension
+          in: query
+          required: true
+          schema:
+            type: string
+            enum: [risk_level, content_type, geo_source, device]
+        - name: start_date
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: end_date
+          in: query
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        name:
+                          type: string
+                        count:
+                          type: integer
+                        percentage:
+                          type: number
+
+  /stats/risk:
+    get:
+      tags: [Stats]
+      summary: 风险分析
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: start_date
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: end_date
+          in: query
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RiskAnalysis'
+
+  # ============================================
+  # 告警管理
+  # ============================================
+  /alerts:
+    get:
+      tags: [Alerts]
+      summary: 告警列表
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/PageSizeParam'
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [pending, acknowledged, resolved]
+        - name: level
+          in: query
+          schema:
+            type: string
+            enum: [info, warning, critical]
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedResponse'
+
+  /alerts/rules:
+    get:
+      tags: [Alerts]
+      summary: 告警规则列表
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/AlertRule'
+
+    post:
+      tags: [Alerts]
+      summary: 创建告警规则
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AlertRuleCreate'
+      responses:
+        '200':
+          description: 创建成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AlertRule'
+
+  /alerts/rules/{id}:
+    put:
+      tags: [Alerts]
+      summary: 更新告警规则
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AlertRuleUpdate'
+      responses:
+        '200':
+          description: 更新成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AlertRule'
+
+  /alerts/{id}/acknowledge:
+    post:
+      tags: [Alerts]
+      summary: 确认告警
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                note:
+                  type: string
+      responses:
+        '200':
+          description: 确认成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+
+  /alerts/{id}/resolve:
+    post:
+      tags: [Alerts]
+      summary: 解决告警
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [resolution]
+              properties:
+                resolution:
+                  type: string
+      responses:
+        '200':
+          description: 解决成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+
+  # ============================================
+  # 用户管理
+  # ============================================
+  /users:
+    get:
+      tags: [Users]
+      summary: 用户列表
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/PageSizeParam'
+        - name: role
+          in: query
+          schema:
+            type: string
+        - name: status
+          in: query
+          schema:
+            type: string
+    post:
+      tags: [Users]
+      summary: 创建用户
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserCreate'
+      responses:
+        '200':
+          description: 创建成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+
+  /users/{id}:
+    get:
+      tags: [Users]
+      summary: 用户详情
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+
+    put:
+      tags: [Users]
+      summary: 更新用户
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserUpdate'
+      responses:
+        '200':
+          description: 更新成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+
+    delete:
+      tags: [Users]
+      summary: 删除用户
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: 删除成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+
+  # ============================================
+  # 系统管理
+  # ============================================
+  /system/health:
+    get:
+      tags: [System]
+      summary: 健康检查
+      responses:
+        '200':
+          description: 服务正常
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    enum: [healthy, unhealthy]
+                  components:
+                    type: object
+                    properties:
+                      database:
+                        type: string
+                        enum: [up, down]
+                      redis:
+                        type: string
+                        enum: [up, down]
+                      elasticsearch:
+                        type: string
+                        enum: [up, down]
+
+  /system/metrics:
+    get:
+      tags: [System]
+      summary: 系统指标
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  cpu_usage:
+                    type: number
+                  memory_usage:
+                    type: number
+                  disk_usage:
+                    type: number
+                  qps:
+                    type: number
+                  avg_response_time_ms:
+                    type: number
+                  active_connections:
+                    type: integer
+
+  /system/config:
+    get:
+      tags: [System]
+      summary: 系统配置
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        key:
+                          type: string
+                        value:
+                          type: string
+                        description:
+                          type: string
+
+    put:
+      tags: [System]
+      summary: 更新配置
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                configs:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      key:
+                        type: string
+                      value:
+                        type: string
+      responses:
+        '200':
+          description: 更新成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+    apiKeyAuth:
+      type: apiKey
+      in: header
+      name: X-API-Key
+
+  parameters:
+    PageParam:
+      name: page
+      in: query
+      schema:
+        type: integer
+        minimum: 1
+        default: 1
+    PageSizeParam:
+      name: page_size
+      in: query
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 100
+        default: 20
+
+  responses:
+    BadRequest:
+      description: 请求参数错误
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    Unauthorized:
+      description: 未授权
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    NotFound:
+      description: 资源不存在
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    RateLimitExceeded:
+      description: 请求频率超限
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+
+  schemas:
+    SuccessResponse:
+      type: object
+      properties:
+        code:
+          type: integer
+          example: 200
+        message:
+          type: string
+          example: "success"
+        request_id:
+          type: string
+        timestamp:
+          type: string
+          format: date-time
+
+    ErrorResponse:
+      type: object
+      properties:
+        code:
+          type: integer
+          example: 400
+        message:
+          type: string
+          example: "Invalid parameter"
+        errors:
+          type: array
+          items:
+            type: object
+            properties:
+              field:
+                type: string
+              message:
+                type: string
+        request_id:
+          type: string
+        timestamp:
+          type: string
+          format: date-time
+
+    PaginatedResponse:
+      type: object
+      properties:
+        code:
+          type: integer
+        message:
+          type: string
+        data:
+          type: array
+          items:
+            type: object
+        pagination:
+          type: object
+          properties:
+            page:
+              type: integer
+            page_size:
+              type: integer
+            total:
+              type: integer
+            total_pages:
+              type: integer
+
+    LoginResponse:
+      type: object
+      properties:
+        code:
+          type: integer
+          example: 200
+        data:
+          type: object
+          properties:
+            access_token:
+              type: string
+            refresh_token:
+              type: string
+            expires_in:
+              type: integer
+              description: 秒
+            user:
+              $ref: '#/components/schemas/User'
+
+    ApiKey:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        key_prefix:
+          type: string
+        permissions:
+          type: array
+          items:
+            type: string
+        rate_limit:
+          type: integer
+        last_used_at:
+          type: string
+          format: date-time
+        usage_count:
+          type: integer
+        status:
+          type: string
+        expire_at:
+          type: string
+          format: date-time
+        created_at:
+          type: string
+          format: date-time
+
+    User:
+      type: object
+      properties:
+        id:
+          type: integer
+        username:
+          type: string
+        email:
+          type: string
+        role:
+          type: string
+        permissions:
+          type: array
+          items:
+            type: string
+        status:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+
+    UserCreate:
+      type: object
+      required: [username, email, password, role]
+      properties:
+        username:
+          type: string
+        email:
+          type: string
+        password:
+          type: string
+          format: password
+        role:
+          type: string
+        permissions:
+          type: array
+          items:
+            type: string
+
+    UserUpdate:
+      type: object
+      properties:
+        email:
+          type: string
+        role:
+          type: string
+        permissions:
+          type: array
+          items:
+            type: string
+        status:
+          type: string
+
+    DetectionRequest:
+      type: object
+      required: [device_id, user_id, timestamp, geo, content]
+      properties:
+        device_id:
+          type: string
+          description: 设备唯一标识
+        user_id:
+          type: string
+          description: 用户唯一标识
+        session_id:
+          type: string
+          description: 会话ID
+        timestamp:
+          type: integer
+          format: int64
+          description: Unix时间戳（秒）
+        geo:
+          type: object
+          required: [latitude, longitude]
+          properties:
+            latitude:
+              type: number
+              minimum: -90
+              maximum: 90
+            longitude:
+              type: number
+              minimum: -180
+              maximum: 180
+            accuracy:
+              type: number
+              description: 精度（米）
+            source:
+              type: string
+              enum: [GPS, WIFI, CELL, IP]
+        content:
+          type: object
+          required: [text]
+          properties:
+            text:
+              type: string
+              maxLength: 5000
+            type:
+              type: string
+              enum: [review, checkin, poi, comment]
+              default: review
+        metadata:
+          type: object
+          properties:
+            ip:
+              type: string
+            app_version:
+              type: string
+            user_agent:
+              type: string
+            platform:
+              type: string
+
+    DetectionResponse:
+      type: object
+      properties:
+        code:
+          type: integer
+          example: 200
+        message:
+          type: string
+          example: "success"
+        data:
+          type: object
+          properties:
+            record_id:
+              type: string
+            suspicion_score:
+              type: number
+              minimum: 0
+              maximum: 100
+            risk_level:
+              type: string
+              enum: [low, medium, high]
+            is_fake:
+              type: boolean
+            confidence:
+              type: number
+            scores:
+              type: object
+              properties:
+                geo_score:
+                  type: number
+                text_score:
+                  type: number
+                simhash_score:
+                  type: number
+                semantic_score:
+                  type: number
+            reasons:
+              type: array
+              items:
+                type: string
+            recommendation:
+              type: string
+              description: 处理建议
+            processing_time_ms:
+              type: integer
+        request_id:
+          type: string
+        timestamp:
+          type: string
+          format: date-time
+
+    BatchDetectionResponse:
+      type: object
+      properties:
+        code:
+          type: integer
+        message:
+          type: string
+        data:
+          type: object
+          properties:
+            summary:
+              type: object
+              properties:
+                total:
+                  type: integer
+                fake_count:
+                  type: integer
+                normal_count:
+                  type: integer
+                high_risk_count:
+                  type: integer
+                medium_risk_count:
+                  type: integer
+                low_risk_count:
+                  type: integer
+            results:
+              type: array
+              items:
+                $ref: '#/components/schemas/DetectionResponse/data/properties/data'
+            processing_time_ms:
+              type: integer
+
+    DetectionRecord:
+      type: object
+      properties:
+        id:
+          type: integer
+        record_id:
+          type: string
+        device_id:
+          type: string
+        user_id:
+          type: string
+        timestamp:
+          type: integer
+        latitude:
+          type: number
+        longitude:
+          type: number
+        content_text:
+          type: string
+        content_type:
+          type: string
+        suspicion_score:
+          type: number
+        risk_level:
+          type: string
+        is_fake:
+          type: boolean
+        geo_score:
+          type: number
+        text_score:
+          type: number
+        simhash_score:
+          type: number
+        semantic_score:
+          type: number
+        reasons:
+          type: array
+          items:
+            type: string
+        review_status:
+          type: string
+        ground_truth:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
+
+    RuleConfig:
+      type: object
+      properties:
+        id:
+          type: integer
+        rule_type:
+          type: string
+          enum: [geo, text, simhash, semantic]
+        rule_name:
+          type: string
+        rule_code:
+          type: string
+        rule_config:
+          type: object
+        description:
+          type: string
+        enabled:
+          type: boolean
+        priority:
+          type: integer
+        hit_count:
+          type: integer
+        created_at:
+          type: string
+          format: date-time
+
+    RuleConfigCreate:
+      type: object
+      required: [rule_type, rule_name, rule_config]
+      properties:
+        rule_type:
+          type: string
+          enum: [geo, text, simhash, semantic]
+        rule_name:
+          type: string
+        rule_code:
+          type: string
+        rule_config:
+          type: object
+        description:
+          type: string
+        enabled:
+          type: boolean
+          default: true
+        priority:
+          type: integer
+          default: 100
+
+    RuleConfigUpdate:
+      type: object
+      properties:
+        rule_name:
+          type: string
+        rule_config:
+          type: object
+        description:
+          type: string
+        enabled:
+          type: boolean
+        priority:
+          type: integer
+
+    Keyword:
+      type: object
+      properties:
+        id:
+          type: integer
+        category:
+          type: string
+        keyword:
+          type: string
+        weight:
+          type: number
+        risk_level:
+          type: string
+        source:
+          type: string
+        hit_count:
+          type: integer
+        enabled:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
+
+    KeywordCreate:
+      type: object
+      required: [category, keyword]
+      properties:
+        category:
+          type: string
+        keyword:
+          type: string
+        weight:
+          type: number
+          default: 1.0
+        risk_level:
+          type: string
+          default: medium
+        description:
+          type: string
+
+    KeywordUpdate:
+      type: object
+      properties:
+        weight:
+          type: number
+        risk_level:
+          type: string
+        enabled:
+          type: boolean
+
+    StatsOverview:
+      type: object
+      properties:
+        total_records:
+          type: integer
+        fake_records:
+          type: integer
+        normal_records:
+          type: integer
+        fake_rate:
+          type: number
+        high_risk_count:
+          type: integer
+        medium_risk_count:
+          type: integer
+        low_risk_count:
+          type: integer
+        avg_suspicion_score:
+          type: number
+        api_calls:
+          type: integer
+        review_pending:
+          type: integer
+        review_completed:
+          type: integer
+
+    RiskAnalysis:
+      type: object
+      properties:
+        risk_distribution:
+          type: object
+          properties:
+            high:
+              type: integer
+            medium:
+              type: integer
+            low:
+              type: integer
+        top_risk_devices:
+          type: array
+          items:
+            type: object
+            properties:
+              device_id:
+                type: string
+              fake_count:
+                type: integer
+              total_count:
+                type: integer
+        top_risk_users:
+          type: array
+          items:
+            type: object
+            properties:
+              user_id:
+                type: string
+              fake_count:
+                type: integer
+              total_count:
+                type: integer
+        anomaly_types:
+          type: object
+          properties:
+            geo_anomaly:
+              type: integer
+            text_anomaly:
+              type: integer
+            duplicate:
+              type: integer
+            cluster_anomaly:
+              type: integer
+
+    AlertRule:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        description:
+          type: string
+        alert_type:
+          type: string
+        condition_config:
+          type: object
+        notification_config:
+          type: object
+        severity:
+          type: string
+        enabled:
+          type: boolean
+        last_triggered_at:
+          type: string
+          format: date-time
+        created_at:
+          type: string
+          format: date-time
+
+    AlertRuleCreate:
+      type: object
+      required: [name, alert_type, condition_config, notification_config]
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        alert_type:
+          type: string
+          enum: [threshold, anomaly, trend]
+        condition_config:
+          type: object
+          description: 告警条件配置
+          example:
+            metric: "fake_rate"
+            operator: ">"
+            threshold: 0.3
+            duration: "5m"
+        notification_config:
+          type: object
+          description: 通知配置
+          example:
+            channels: ["email", "webhook"]
+            emails: ["admin@example.com"]
+            webhook_url: "https://hooks.example.com/alert"
+        severity:
+          type: string
+          enum: [info, warning, critical]
+          default: warning
+        enabled:
+          type: boolean
+          default: true
+        cooldown_minutes:
+          type: integer
+          default: 60
+
+    AlertRuleUpdate:
+      type: object
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        condition_config:
+          type: object
+        notification_config:
+          type: object
+        severity:
+          type: string
+        enabled:
+          type: boolean
+        cooldown_minutes:
+          type: integer

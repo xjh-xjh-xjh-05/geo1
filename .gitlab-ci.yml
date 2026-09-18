@@ -1,0 +1,110 @@
+# GitLab CI/CD配置文件
+
+stages:
+  - lint
+  - test
+  - build
+  - deploy
+
+variables:
+  DOCKER_DRIVER: overlay2
+  DOCKER_TLS_CERTDIR: ""
+  POSTGRES_USER: postgres
+  POSTGRES_PASSWORD: postgres
+  POSTGRES_DB: geo_fake_detection
+  REDIS_URL: redis://redis:6379/0
+
+# 代码检查
+lint:
+  stage: lint
+  image: python:3.11-slim
+  script:
+    - pip install --no-cache-dir black flake8 mypy
+    - black --check .
+    - flake8 .
+    - mypy --ignore-missing-imports .
+  only:
+    - merge_requests
+    - main
+
+# 单元测试
+test:
+  stage: test
+  image: python:3.11-slim
+  services:
+    - postgres:15-alpine
+    - redis:7-alpine
+  script:
+    - apt-get update && apt-get install -y gcc libpq-dev
+    - pip install --no-cache-dir -r requirements.txt
+    - pip install --no-cache-dir pytest pytest-cov
+    - pytest --cov=api --cov=engine --cov-report=term
+  only:
+    - merge_requests
+    - main
+
+# 构建Docker镜像
+build:
+  stage: build
+  image: docker:latest
+  services:
+    - docker:dind
+  script:
+    - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
+    - docker build -t $CI_REGISTRY_IMAGE:latest .
+    - docker push $CI_REGISTRY_IMAGE:latest
+  only:
+    - main
+
+# 部署到开发环境
+deploy_dev:
+  stage: deploy
+  image: bitnami/kubectl:latest
+  script:
+    - kubectl config use-context dev
+    - kubectl apply -f k8s/deployment.yaml
+    - kubectl rollout status deployment/geo-fake-detection
+  environment:
+    name: development
+  only:
+    - main
+
+# 部署到生产环境
+deploy_prod:
+  stage: deploy
+  image: bitnami/kubectl:latest
+  script:
+    - kubectl config use-context prod
+    - kubectl apply -f k8s/deployment-prod.yaml
+    - kubectl rollout status deployment/geo-fake-detection
+  environment:
+    name: production
+  only:
+    - tags
+  when: manual
+
+# 微服务构建
+build-microservices:
+  stage: build
+  image: docker:latest
+  services:
+    - docker:dind
+  script:
+    - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
+    - docker build -t $CI_REGISTRY_IMAGE/api-gateway:latest -f services/api-gateway/Dockerfile services/api-gateway
+    - docker build -t $CI_REGISTRY_IMAGE/detection-service:latest -f services/detection-service/Dockerfile services/detection-service
+    - docker build -t $CI_REGISTRY_IMAGE/user-service:latest -f services/user-service/Dockerfile services/user-service
+    - docker push $CI_REGISTRY_IMAGE/api-gateway:latest
+    - docker push $CI_REGISTRY_IMAGE/detection-service:latest
+    - docker push $CI_REGISTRY_IMAGE/user-service:latest
+  only:
+    - main
+  when: manual
+
+# 清理
+tidy:
+  stage: .post
+  image: alpine:latest
+  script:
+    - echo "Cleaning up..."
+  when: always

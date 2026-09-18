@@ -1,0 +1,21 @@
+- [x] Scorer._is_fake() 实现多因子加权判断，不再仅依赖硬编码阈值
+- [x] Scorer._calculate_total_score() 支持动态权重调整（文本为空/无坐标/批量模式）
+- [x] Scorer 新增 _calculate_confidence() 方法基于评分与阈值距离计算置信度
+- [x] config.py 的 ScorerConfig 新增动态权重相关配置参数
+- [x] TextRuleEngine._check_suspicious_keywords() 支持营销词密度计算和严重度分级
+- [x] TextRuleEngine._check_template() 支持与营销词检测的严重度叠加
+- [x] TextRuleEngine 新增 _calculate_marketing_density() 方法
+- [x] FakeDetectionModel.forward() 融合文本特征向量和地理特征向量
+- [x] FakeDetectionModel 新增 _encode_text() 字符级文本编码方法
+- [x] NeuralScorer.analyze() 使用融合模型输出，不重复调用规则引擎
+- [x] PyTorch 不可用时降级为纯规则评分，不影响系统运行
+- [x] create_training_data() 覆盖5种以上数据类别（正常/营销/地理异常/混合/边界）
+- [x] 默认训练样本量 >= 5000，正负比例约6:4
+- [x] 训练数据包含地理异常场景（坐标异常、瞬移、高频上报）
+- [x] FakeDetectionDataset 适配融合特征（文本+地理）
+- [x] ModelManager 支持同时管理 sklearn 模型和神经网络模型
+- [x] OptimizedDetectionService 统一通过 ModelManager 调用模型
+- [x] _merge_results() 使用基于置信度的加权融合替代硬编码分数调整
+- [x] 训练脚本输出完整评估指标（精确率、召回率、F1、混淆矩阵）
+- [x] 独立评估脚本 scripts/evaluate_model.py 可运行
+- [x] AI模型 API 端点支持模型评估

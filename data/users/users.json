@@ -1,0 +1,17 @@
+{
+  "users": [
+    {
+      "user_id": "06a590a1-071b-4144-9406-df69c95e9bfd",
+      "username": "admin",
+      "email": "admin@geo-detection.local",
+      "password_hash": "240be518fabd2724ddb6f04eeb1da5967448d7e831c08c8fa822809f74c720a9",
+      "role": "admin",
+      "is_active": true,
+      "created_at": "2026-05-01T14:25:54.354840",
+      "last_login": "",
+      "login_count": 0,
+      "metadata": {}
+    }
+  ],
+  "updated_at": "2026-05-01T14:25:54.354840"
+}

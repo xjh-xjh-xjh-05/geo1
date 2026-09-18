@@ -1,0 +1,122 @@
+{
+  "features": [
+    {
+      "feature_id": "4092ecfe-cfc1-4fa1-bba4-500aac3e5581",
+      "feature_type": "spatial",
+      "name": "坐标异常偏移",
+      "description": "POI坐标与实际位置存在明显偏移",
+      "patterns": [
+        "坐标偏移超过500米",
+        "坐标落在水域或禁区",
+        "坐标与地址不匹配"
+      ],
+      "weight": 0.8,
+      "is_active": true,
+      "created_at": "2026-05-01T14:24:20.476529",
+      "updated_at": "",
+      "metadata": {}
+    },
+    {
+      "feature_id": "da26d8c4-ef97-4400-a66f-54629f5c8c02",
+      "feature_type": "spatial",
+      "name": "网格状分布",
+      "description": "多个POI呈现规律性网格分布",
+      "patterns": [
+        "POI间距高度一致",
+        "坐标小数位规律",
+        "批量投喂特征"
+      ],
+      "weight": 0.9,
+      "is_active": true,
+      "created_at": "2026-05-01T14:24:20.476529",
+      "updated_at": "",
+      "metadata": {}
+    },
+    {
+      "feature_id": "7c4e66b7-8b9b-41b1-a7a8-f5a744622379",
+      "feature_type": "text",
+      "name": "营销词堆砌",
+      "description": "名称或描述中包含大量营销词汇",
+      "patterns": [
+        "全网第一",
+        "全国最好",
+        "顶级",
+        "极致",
+        "免费",
+        "赠送",
+        "限时优惠"
+      ],
+      "weight": 0.7,
+      "is_active": true,
+      "created_at": "2026-05-01T14:24:20.476529",
+      "updated_at": "",
+      "metadata": {}
+    },
+    {
+      "feature_id": "a8f2c9cd-0705-41e3-99e4-6af3b8fe8418",
+      "feature_type": "text",
+      "name": "模板化内容",
+      "description": "内容高度相似，疑似模板生成",
+      "patterns": [
+        "名称高度相似",
+        "地址格式完全一致",
+        "描述文本重复"
+      ],
+      "weight": 0.85,
+      "is_active": true,
+      "created_at": "2026-05-01T14:24:20.476529",
+      "updated_at": "",
+      "metadata": {}
+    },
+    {
+      "feature_id": "059e1d5c-e0f2-433e-a06b-bdc82b8c2b8e",
+      "feature_type": "behavior",
+      "name": "批量上传",
+      "description": "短时间内大量上传相似POI",
+      "patterns": [
+        "1小时内上传超过50条",
+        "同一账号高频操作",
+        "IP地址集中"
+      ],
+      "weight": 0.9,
+      "is_active": true,
+      "created_at": "2026-05-01T14:24:20.476529",
+      "updated_at": "",
+      "metadata": {}
+    },
+    {
+      "feature_id": "61bf75c4-f49c-44a0-bad2-814a1aff233e",
+      "feature_type": "consistency",
+      "name": "单平台独有",
+      "description": "仅单个平台存在，其他平台无记录",
+      "patterns": [
+        "高德无记录",
+        "百度无记录",
+        "OSM无记录",
+        "天地图无记录"
+      ],
+      "weight": 0.75,
+      "is_active": true,
+      "created_at": "2026-05-01T14:24:20.476529",
+      "updated_at": "",
+      "metadata": {}
+    },
+    {
+      "feature_id": "19281536-5710-4198-a06f-e668f017b444",
+      "feature_type": "consistency",
+      "name": "信息矛盾",
+      "description": "不同平台信息存在明显矛盾",
+      "patterns": [
+        "类别完全不符",
+        "地址差异过大",
+        "名称不匹配"
+      ],
+      "weight": 0.8,
+      "is_active": true,
+      "created_at": "2026-05-01T14:24:20.476529",
+      "updated_at": "",
+      "metadata": {}
+    }
+  ],
+  "updated_at": "2026-05-01T14:24:20.476529"
+}

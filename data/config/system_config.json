@@ -1,0 +1,108 @@
+{
+  "configs": [
+    {
+      "config_key": "detection.confidence_threshold",
+      "config_value": 0.7,
+      "description": "检测置信度阈值",
+      "category": "detection",
+      "is_editable": true,
+      "updated_at": "2026-05-01T14:25:54.354840",
+      "updated_by": ""
+    },
+    {
+      "config_key": "detection.coordinate_offset_threshold",
+      "config_value": 500,
+      "description": "坐标偏移阈值（米）",
+      "category": "detection",
+      "is_editable": true,
+      "updated_at": "2026-05-01T14:25:54.354840",
+      "updated_by": ""
+    },
+    {
+      "config_key": "detection.marketing_keyword_threshold",
+      "config_value": 0.3,
+      "description": "营销词占比阈值",
+      "category": "detection",
+      "is_editable": true,
+      "updated_at": "2026-05-01T14:25:54.354840",
+      "updated_by": ""
+    },
+    {
+      "config_key": "cross_validation.enabled_platforms",
+      "config_value": [
+        "amap",
+        "baidu",
+        "osm"
+      ],
+      "description": "启用的交叉验证平台",
+      "category": "cross_validation",
+      "is_editable": true,
+      "updated_at": "2026-05-01T14:25:54.354840",
+      "updated_by": ""
+    },
+    {
+      "config_key": "cross_validation.similarity_threshold",
+      "config_value": 0.7,
+      "description": "相似度阈值",
+      "category": "cross_validation",
+      "is_editable": true,
+      "updated_at": "2026-05-01T14:25:54.354840",
+      "updated_by": ""
+    },
+    {
+      "config_key": "alert.fake_threshold",
+      "config_value": 0.8,
+      "description": "虚假数据预警阈值",
+      "category": "alert",
+      "is_editable": true,
+      "updated_at": "2026-05-01T14:25:54.354840",
+      "updated_by": ""
+    },
+    {
+      "config_key": "alert.email_notification",
+      "config_value": false,
+      "description": "是否启用邮件通知",
+      "category": "alert",
+      "is_editable": true,
+      "updated_at": "2026-05-01T14:25:54.354840",
+      "updated_by": ""
+    },
+    {
+      "config_key": "system.max_batch_size",
+      "config_value": 1000,
+      "description": "批量检测最大数量",
+      "category": "system",
+      "is_editable": true,
+      "updated_at": "2026-05-01T14:25:54.354840",
+      "updated_by": ""
+    },
+    {
+      "config_key": "system.log_retention_days",
+      "config_value": 30,
+      "description": "日志保留天数",
+      "category": "system",
+      "is_editable": true,
+      "updated_at": "2026-05-01T14:25:54.354840",
+      "updated_by": ""
+    },
+    {
+      "config_key": "api.rate_limit_per_minute",
+      "config_value": 60,
+      "description": "API每分钟请求限制",
+      "category": "api",
+      "is_editable": true,
+      "updated_at": "2026-05-01T14:25:54.354840",
+      "updated_by": ""
+    },
+    {
+      "config_key": "api.key_required",
+      "config_value": true,
+      "description": "是否需要API Key",
+      "category": "api",
+      "is_editable": true,
+      "updated_at": "2026-05-01T14:25:54.354840",
+      "updated_by": ""
+    }
+  ],
+  "updated_at": "2026-05-01T14:25:54.354840"
+}

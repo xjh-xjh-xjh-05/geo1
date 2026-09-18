@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Read(//c/Users/xu/.claude/plans/**)",
+      "Bash(python -c \"import ast; ast.parse\\(open\\('api/routers/preprocessing.py'\\).read\\(\\)\\); print\\('preprocessing.py: OK'\\)\")",
+      "Bash(python -c \"import ast; ast.parse\\(open\\('api/routers/ai_models.py'\\).read\\(\\)\\); print\\('ai_models.py: OK'\\)\")",
+      "Bash(python -c \"import ast; ast.parse\\(open\\('api/routers/backend_management.py'\\).read\\(\\)\\); print\\('backend_management.py: OK'\\)\")"
+    ]
+  }
+}
