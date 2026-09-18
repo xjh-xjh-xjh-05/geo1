@@ -6,7 +6,7 @@ import os
 import json
 import asyncio
 from typing import List, Dict, Any, Optional
-from datetime import datetime
+from datetime import datetime, timezone
 import threading
 
 from kafka import KafkaProducer, KafkaConsumer
@@ -119,10 +119,10 @@ class KafkaService:
             return False
         
         try:
-            message_key = f"req_{datetime.utcnow().strftime('%Y%m%d%H%M%S')}_{os.urandom(8).hex()}"
+            message_key = f"req_{datetime.now(timezone.utc).replace(tzinfo=None).strftime('%Y%m%d%H%M%S')}_{os.urandom(8).hex()}"
             message_value = {
                 "request_id": message_key,
-                "timestamp": datetime.utcnow().isoformat(),
+                "timestamp": datetime.now(timezone.utc).replace(tzinfo=None).isoformat(),
                 "data": request.model_dump()
             }
             
@@ -148,7 +148,7 @@ class KafkaService:
             message_key = f"res_{request_id}"
             message_value = {
                 "request_id": request_id,
-                "timestamp": datetime.utcnow().isoformat(),
+                "timestamp": datetime.now(timezone.utc).replace(tzinfo=None).isoformat(),
                 "data": result.model_dump()
             }
             

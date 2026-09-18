@@ -36,8 +36,8 @@ services:
     depends_on:
       - detection-service
       - user-service
-      - rule-service
-      - data-service
+      # - rule-service  # 空壳服务已收缩
+      # - data-service  # 空壳服务已收缩
     volumes:
       - logs:/app/logs
     networks:
@@ -124,74 +124,79 @@ services:
           cpus: "1.0"
           memory: "1G"
 
-  # 规则服务
-  rule-service:
-    build:
-      context: ./services/rule-service
-      dockerfile: Dockerfile
-    container_name: geo-fake-rule-service
-    ports:
-      - "8003:8000"
-    environment:
-      - DATABASE_URL=postgresql://postgres:postgres@db:5432/geo_fake_detection
-      - REDIS_URL=redis://redis:6379/0
-      - SECRET_KEY=${SECRET_KEY:-change-me-in-production}
-      - DEBUG=${DEBUG:-false}
-      - KAFKA_BOOTSTRAP_SERVERS=kafka:9093
-    depends_on:
-      - db
-      - redis
-    volumes:
-      - logs:/app/logs
-    networks:
-      - geo-fake-network
-    restart: unless-stopped
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 10s
-    deploy:
-      resources:
-        limits:
-          cpus: "1.0"
-          memory: "1G"
-
-  # 数据服务
-  data-service:
-    build:
-      context: ./services/data-service
-      dockerfile: Dockerfile
-    container_name: geo-fake-data-service
-    ports:
-      - "8004:8000"
-    environment:
-      - DATABASE_URL=postgresql://postgres:postgres@db:5432/geo_fake_detection
-      - REDIS_URL=redis://redis:6379/0
-      - SECRET_KEY=${SECRET_KEY:-change-me-in-production}
-      - DEBUG=${DEBUG:-false}
-      - KAFKA_BOOTSTRAP_SERVERS=kafka:9093
-    depends_on:
-      - db
-      - redis
-    volumes:
-      - logs:/app/logs
-    networks:
-      - geo-fake-network
-    restart: unless-stopped
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 10s
-    deploy:
-      resources:
-        limits:
-          cpus: "1.0"
-          memory: "1G"
-
+# ------------------------------------------------------------
+# rule-service / data-service 为未实现的服务（目录只有占位文件），
+# 已按「单体优先」策略从编排中移除；规则/数据能力由单体 API 提供。
+# 如需微服务化，请按现行接口重写后恢复以下配置（原配置已注释保留）。
+# ------------------------------------------------------------
+#   # 规则服务
+#   rule-service:
+#     build:
+#       context: ./services/rule-service
+#       dockerfile: Dockerfile
+#     container_name: geo-fake-rule-service
+#     ports:
+#       - "8003:8000"
+#     environment:
+#       - DATABASE_URL=postgresql://postgres:postgres@db:5432/geo_fake_detection
+#       - REDIS_URL=redis://redis:6379/0
+#       - SECRET_KEY=${SECRET_KEY:-change-me-in-production}
+#       - DEBUG=${DEBUG:-false}
+#       - KAFKA_BOOTSTRAP_SERVERS=kafka:9093
+#     depends_on:
+#       - db
+#       - redis
+#     volumes:
+#       - logs:/app/logs
+#     networks:
+#       - geo-fake-network
+#     restart: unless-stopped
+#     healthcheck:
+#       test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+#       interval: 30s
+#       timeout: 10s
+#       retries: 3
+#       start_period: 10s
+#     deploy:
+#       resources:
+#         limits:
+#           cpus: "1.0"
+#           memory: "1G"
+#
+#   # 数据服务
+#   data-service:
+#     build:
+#       context: ./services/data-service
+#       dockerfile: Dockerfile
+#     container_name: geo-fake-data-service
+#     ports:
+#       - "8004:8000"
+#     environment:
+#       - DATABASE_URL=postgresql://postgres:postgres@db:5432/geo_fake_detection
+#       - REDIS_URL=redis://redis:6379/0
+#       - SECRET_KEY=${SECRET_KEY:-change-me-in-production}
+#       - DEBUG=${DEBUG:-false}
+#       - KAFKA_BOOTSTRAP_SERVERS=kafka:9093
+#     depends_on:
+#       - db
+#       - redis
+#     volumes:
+#       - logs:/app/logs
+#     networks:
+#       - geo-fake-network
+#     restart: unless-stopped
+#     healthcheck:
+#       test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+#       interval: 30s
+#       timeout: 10s
+#       retries: 3
+#       start_period: 10s
+#     deploy:
+#       resources:
+#         limits:
+#           cpus: "1.0"
+#           memory: "1G"
+#
   # 数据库服务
   db:
     image: postgres:15.6-alpine

@@ -1,3 +1,6 @@
+-- 注意：本文件为设计阶段的参考 Schema（PostgreSQL）。
+-- 运行时表结构以 ORM 模型为准：api/models/db_models.py + Base.metadata.create_all。
+-- 两者表数量/字段可能存在差异，ORM 为唯一事实来源。
 -- ============================================
 -- 商用地理信息虚假内容检查与反投喂平台
 -- 数据库Schema设计

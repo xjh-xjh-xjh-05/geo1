@@ -8,7 +8,7 @@ import uuid
 import hashlib
 import asyncio
 from typing import List, Dict, Any, Optional
-from datetime import datetime
+from datetime import datetime, timezone
 from sqlalchemy.orm import Session
 from functools import lru_cache
 import threading
@@ -229,7 +229,7 @@ class OptimizedDetectionService:
             metadata.user_agent = request.metadata.user_agent or ""
         
         record = InputRecord(
-            record_id=f"R_{datetime.utcnow().strftime('%Y%m%d%H%M%S')}_{uuid.uuid4().hex[:8]}",
+            record_id=f"R_{datetime.now(timezone.utc).replace(tzinfo=None).strftime('%Y%m%d%H%M%S')}_{uuid.uuid4().hex[:8]}",
             device_id=request.device_id,
             user_id=request.user_id,
             timestamp=request.timestamp,

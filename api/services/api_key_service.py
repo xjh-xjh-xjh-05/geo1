@@ -4,7 +4,7 @@ API密钥服务
 import secrets
 import hashlib
 from typing import Optional, List, Dict, Any
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from sqlalchemy.orm import Session
 from sqlalchemy import and_
 
@@ -40,7 +40,7 @@ class ApiKeyService:
         )
         
         if expire_days:
-            api_key.expire_at = datetime.utcnow() + timedelta(days=expire_days)
+            api_key.expire_at = datetime.now(timezone.utc).replace(tzinfo=None) + timedelta(days=expire_days)
         
         self.db.add(api_key)
         self.db.commit()
@@ -75,10 +75,10 @@ class ApiKeyService:
         if not api_key:
             return None
         
-        if api_key.expire_at and api_key.expire_at < datetime.utcnow():
+        if api_key.expire_at and api_key.expire_at < datetime.now(timezone.utc).replace(tzinfo=None):
             return None
         
-        api_key.last_used_at = datetime.utcnow()
+        api_key.last_used_at = datetime.now(timezone.utc).replace(tzinfo=None)
         api_key.usage_count += 1
         self.db.commit()
         

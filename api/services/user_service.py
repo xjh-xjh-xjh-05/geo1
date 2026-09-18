@@ -2,7 +2,7 @@
 用户服务
 """
 from typing import Optional, Dict, Any
-from datetime import datetime
+from datetime import datetime, timezone
 from sqlalchemy.orm import Session
 from sqlalchemy import and_
 
@@ -77,7 +77,7 @@ class UserService:
         if user.status != "active":
             return None
         
-        user.last_login_at = datetime.utcnow()
+        user.last_login_at = datetime.now(timezone.utc).replace(tzinfo=None)
         self.db.commit()
         
         access_token = create_access_token(data={"sub": user.id, "tenant_id": user.tenant_id})
@@ -99,7 +99,7 @@ class UserService:
     
     def update_last_login(self, user_id: int, ip: str):
         self.db.query(User).filter(User.id == user_id).update({
-            "last_login_at": datetime.utcnow(),
+            "last_login_at": datetime.now(timezone.utc).replace(tzinfo=None),
             "last_login_ip": ip
         })
         self.db.commit()

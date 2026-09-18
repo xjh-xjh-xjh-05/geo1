@@ -42,55 +42,62 @@
 ```
 geo-fake-detection/
 ├── api/                    # FastAPI服务
-│   ├── core/               # 核心配置
-│   │   ├── config.py       # 配置管理
-│   │   ├── database.py     # 数据库连接
-│   │   ├── security.py     # 安全认证
-│   │   ├── cache.py        # Redis缓存
-│   │   └── responses.py    # 响应格式
-│   ├── models/             # 数据模型
-│   │   ├── db_models.py    # ORM模型
-│   │   └── schemas.py      # Pydantic模型
-│   ├── routers/            # API路由
+│   ├── core/               # 核心配置（config/database/security/cache/middleware/logging）
+│   ├── models/             # ORM模型 + Pydantic schema
+│   ├── routers/            # API路由（16个模块）
 │   │   ├── auth.py         # 认证接口
-│   │   ├── detect.py       # 检测接口
+│   │   ├── detect.py       # 检测接口（单条/批量/流式）
 │   │   ├── records.py      # 记录管理
 │   │   ├── review.py       # 审核管理
 │   │   ├── rules.py        # 规则管理
 │   │   ├── keywords.py     # 关键词管理
-│   │   └── stats.py        # 统计报表
+│   │   ├── stats.py        # 统计报表
+│   │   ├── alerts.py       # 告警管理（+alert_rules.py 告警规则）
+│   │   ├── users.py        # 用户管理
+│   │   ├── system.py       # 系统管理（配置/健康检查）
+│   │   ├── logs.py         # 日志查询
+│   │   ├── preprocessing.py       # 数据预处理（地址解析/坐标校准）
+│   │   ├── ai_models.py           # AI模型管理（训练/评估/预测）
+│   │   ├── data_management.py     # 数据管理（导入导出）
+│   │   └── backend_management.py  # 后台管理
 │   ├── services/           # 业务逻辑
-│   │   ├── user_service.py
-│   │   ├── tenant_service.py
-│   │   ├── api_key_service.py
-│   │   └── detection_service.py
+│   │   ├── user_service.py / tenant_service.py / api_key_service.py
+│   │   ├── detection_service.py   # 检测编排（含交叉验证融合）
+│   │   └── kafka_service.py       # Kafka实时流处理
 │   └── main.py             # 应用入口
 ├── engine/                 # 检测引擎
 │   ├── geo_rules.py        # GEO规则引擎
 │   ├── text_rules.py       # 文本规则引擎
 │   ├── simhash_dup.py      # SimHash去重
-│   ├── semantic_cluster.py # 语义聚类
-│   └── scorer.py           # 综合评分
-├── utils/                  # 工具函数
-│   ├── geo_utils.py        # 地理计算工具
-│   └── text_utils.py       # 文本处理工具
-├── generator/              # 数据生成
-│   └── mock_data.py        # 模拟数据生成器
-├── database/               # 数据库
-│   └── schema.sql          # 数据库Schema
-├── docs/                   # 文档
-│   └── api_spec.yaml       # OpenAPI规范
-├── tests/                  # 测试
-│   ├── test_api.py
-│   ├── test_detection_service.py
-│   └── test_user_service.py
+│   ├── semantic_cluster.py # 语义聚类（支持SentenceTransformer，可降级）
+│   ├── neural_model.py     # 神经网络模型（接入五维融合评分）
+│   └── scorer.py           # 综合评分（GEO/文本/SimHash/聚类/神经网络 五维加权）
+├── modules/                # 业务模块
+│   ├── preprocessing/      # 预处理（数据清洗/地址解析/坐标验证）
+│   ├── ai_model/           # AI模型管理（特征提取/评估）
+│   ├── cross_validation/   # 多源交叉验证
+│   ├── data_management/    # 数据管理
+│   ├── backend_management/ # 后台管理
+│   ├── result_output/      # 结果输出
+│   └── ui_components/      # Streamlit UI组件
+├── services/               # 微服务架构（演进方向，当前单体优先）
+│   ├── api-gateway/        # API网关（可用）
+│   ├── detection-service/  # 检测服务（脚手架，待按现行接口重写）
+│   ├── user-service/       # 用户服务（脚手架，待按现行接口重写）
+│   └── monitoring/         # Prometheus配置
+├── scripts/                # 运维与训练脚本
+│   ├── train_model.py      # 神经网络训练（字符编码MLP，产出 data/models/*.pt）
+│   ├── train_rf_model.py   # 随机森林混合模型训练（产出 models/saved/*.joblib）
+│   ├── evaluate_model.py   # 模型评估
+│   ├── init_db.py / migrate.py
+├── generator/              # 模拟数据生成器
+├── database/               # schema.sql（参考用，运行时以 ORM create_all 为准）
+├── docs/api_spec.yaml      # OpenAPI规范（手工版，实际以 /docs 自动生成为准）
+├── tests/                  # 测试（单元/集成/性能/Kafka端到端）
 ├── app.py                  # Streamlit界面
-├── config.py               # 原有配置
-├── models.py               # 原有模型
-├── requirements.txt        # 依赖文件
-├── Dockerfile              # Docker配置
-├── docker-compose.yml      # Docker Compose
-└── README.md               # 本文件
+├── config.py               # 评分/规则/语义配置
+├── models.py               # 引擎核心数据类
+└── docker-compose.yml      # 单体编排（api/db/redis/kafka/zookeeper/frontend）
 ```
 
 ## 快速开始
@@ -220,6 +227,9 @@ curl -X POST http://localhost:8000/api/v1/detect/stream \
 | SimHash | 15% | 文本相似度、重复检测 |
 | 语义聚类 | 15%（批量25%） | SentenceTransformer/离线字符向量的批量相似内容检测 |
 | 随机森林 | 融合来源 | 基于上述信号和稳定元特征给出辅助判定；GEO硬证据优先 |
+| 神经网络 | 15%* | 字符编码MLP虚假概率；模型缺失时自动归零，其余维度按比例重分配 |
+
+*神经网络权重仅在 `data/models/fake_detection_model.pt` 存在且加载成功时生效（scripts/train_model.py 训练产出）。
 
 ## 风险等级
 
@@ -250,6 +260,15 @@ QUOTA_DEFAULT_MONTHLY=300000
 
 # 可选：启用本地 SentenceTransformer 语义向量
 USE_SENTENCE_TRANSFORMER=false
+
+# Kafka 配置（Phase 8 实时流处理；docker compose 内为 kafka:9092）
+KAFKA_BOOTSTRAP_SERVERS=localhost:29092
+KAFKA_DETECTION_TOPIC=geo-detection-requests
+KAFKA_RESULT_TOPIC=geo-detection-results
+```
+
+> 本地开发默认使用 SQLite（`DATABASE_URL=sqlite:///./geo_fake_detection.db`，零配置）；
+> 生产环境使用 PostgreSQL。
 ```
 
 ### 训练本地混合模型
@@ -297,8 +316,11 @@ python scripts/evaluate_model.py --data-path data/training_data.json
 - [x] Phase 5: 认证授权系统
 - [x] Phase 6: 审核标注系统
 - [x] Phase 7: 统计报表
-- [ ] Phase 8: 实时流处理
-- [ ] Phase 9: 模型训练平台
+- [x] Phase 8: 实时流处理（Kafka，docker-compose 已含 zookeeper/kafka，端到端测试见 tests/test_kafka_integration.py）
+- [x] Phase 9: 模型训练平台（scripts/train_model.py 神经网络 + train_rf_model.py 随机森林，均已接入线上推理）
+
+> 微服务架构（services/）为演进方向，当前以单体优先：api-gateway 可用；
+> detection/user-service 为脚手架，待按现行接口重写。
 
 ## 测试
 

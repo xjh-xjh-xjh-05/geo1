@@ -4,7 +4,7 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from sqlalchemy import func, and_
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 from api.core.database import get_db
 from api.core.security import get_current_user
@@ -23,7 +23,7 @@ async def stats_summary(
     tenant_id = current_user["tenant_id"]
     
     # 今日统计
-    today_start = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
+    today_start = datetime.now(timezone.utc).replace(tzinfo=None).replace(hour=0, minute=0, second=0, microsecond=0)
     today_records = db.query(DetectionRecord).filter(
         DetectionRecord.tenant_id == tenant_id,
         DetectionRecord.created_at >= today_start
@@ -33,7 +33,7 @@ async def stats_summary(
     today_fake = sum(1 for r in today_records if r.is_fake)
     
     # 昨日统计
-    yesterday_start = (datetime.utcnow() - timedelta(days=1)).replace(hour=0, minute=0, second=0, microsecond=0)
+    yesterday_start = (datetime.now(timezone.utc).replace(tzinfo=None) - timedelta(days=1)).replace(hour=0, minute=0, second=0, microsecond=0)
     yesterday_end = today_start
     yesterday_records = db.query(DetectionRecord).filter(
         DetectionRecord.tenant_id == tenant_id,
@@ -81,26 +81,26 @@ async def stats_overview(
     tenant_id = current_user["tenant_id"]
     
     if period == "today":
-        start = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
-        end = datetime.utcnow()
+        start = datetime.now(timezone.utc).replace(tzinfo=None).replace(hour=0, minute=0, second=0, microsecond=0)
+        end = datetime.now(timezone.utc).replace(tzinfo=None)
     elif period == "yesterday":
-        start = (datetime.utcnow() - timedelta(days=1)).replace(hour=0, minute=0, second=0, microsecond=0)
-        end = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
+        start = (datetime.now(timezone.utc).replace(tzinfo=None) - timedelta(days=1)).replace(hour=0, minute=0, second=0, microsecond=0)
+        end = datetime.now(timezone.utc).replace(tzinfo=None).replace(hour=0, minute=0, second=0, microsecond=0)
     elif period == "week":
-        start = (datetime.utcnow() - timedelta(days=7)).replace(hour=0, minute=0, second=0, microsecond=0)
-        end = datetime.utcnow()
+        start = (datetime.now(timezone.utc).replace(tzinfo=None) - timedelta(days=7)).replace(hour=0, minute=0, second=0, microsecond=0)
+        end = datetime.now(timezone.utc).replace(tzinfo=None)
     elif period == "month":
-        start = (datetime.utcnow() - timedelta(days=30)).replace(hour=0, minute=0, second=0, microsecond=0)
-        end = datetime.utcnow()
+        start = (datetime.now(timezone.utc).replace(tzinfo=None) - timedelta(days=30)).replace(hour=0, minute=0, second=0, microsecond=0)
+        end = datetime.now(timezone.utc).replace(tzinfo=None)
     else:
         if start_date:
             start = datetime.fromisoformat(start_date)
         else:
-            start = datetime.utcnow() - timedelta(days=7)
+            start = datetime.now(timezone.utc).replace(tzinfo=None) - timedelta(days=7)
         if end_date:
             end = datetime.fromisoformat(end_date)
         else:
-            end = datetime.utcnow()
+            end = datetime.now(timezone.utc).replace(tzinfo=None)
     
     records = db.query(DetectionRecord).filter(
         DetectionRecord.tenant_id == tenant_id,
@@ -161,12 +161,12 @@ async def stats_trend(
     if start_date:
         start = datetime.fromisoformat(start_date)
     else:
-        start = datetime.utcnow() - timedelta(days=7)
+        start = datetime.now(timezone.utc).replace(tzinfo=None) - timedelta(days=7)
     
     if end_date:
         end = datetime.fromisoformat(end_date)
     else:
-        end = datetime.utcnow()
+        end = datetime.now(timezone.utc).replace(tzinfo=None)
     
     if granularity == "hour":
         date_trunc = func.date_trunc('hour', DetectionRecord.created_at)
@@ -221,12 +221,12 @@ async def stats_distribution(
     if start_date:
         start = datetime.fromisoformat(start_date)
     else:
-        start = datetime.utcnow() - timedelta(days=30)
+        start = datetime.now(timezone.utc).replace(tzinfo=None) - timedelta(days=30)
     
     if end_date:
         end = datetime.fromisoformat(end_date)
     else:
-        end = datetime.utcnow()
+        end = datetime.now(timezone.utc).replace(tzinfo=None)
     
     query = db.query(DetectionRecord).filter(
         DetectionRecord.tenant_id == tenant_id,
@@ -284,12 +284,12 @@ async def stats_risk(
     if start_date:
         start = datetime.fromisoformat(start_date)
     else:
-        start = datetime.utcnow() - timedelta(days=30)
+        start = datetime.now(timezone.utc).replace(tzinfo=None) - timedelta(days=30)
     
     if end_date:
         end = datetime.fromisoformat(end_date)
     else:
-        end = datetime.utcnow()
+        end = datetime.now(timezone.utc).replace(tzinfo=None)
     
     records = db.query(DetectionRecord).filter(
         DetectionRecord.tenant_id == tenant_id,

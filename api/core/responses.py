@@ -3,7 +3,7 @@
 """
 from typing import Any, Dict, Optional, List, Generic, TypeVar
 from pydantic import BaseModel, Field
-from datetime import datetime
+from datetime import datetime, timezone
 import uuid
 
 from api.core.errors import ErrorCode, AppException
@@ -23,7 +23,7 @@ class ResponseModel(BaseModel, Generic[T]):
         if "request_id" not in data or not data["request_id"]:
             data["request_id"] = str(uuid.uuid4())[:8]
         if "timestamp" not in data or not data["timestamp"]:
-            data["timestamp"] = datetime.utcnow().isoformat() + "Z"
+            data["timestamp"] = datetime.now(timezone.utc).replace(tzinfo=None).isoformat() + "Z"
         super().__init__(**data)
 
 
@@ -39,7 +39,7 @@ class ErrorResponseModel(BaseModel):
         if "request_id" not in data or not data["request_id"]:
             data["request_id"] = str(uuid.uuid4())[:8]
         if "timestamp" not in data or not data["timestamp"]:
-            data["timestamp"] = datetime.utcnow().isoformat() + "Z"
+            data["timestamp"] = datetime.now(timezone.utc).replace(tzinfo=None).isoformat() + "Z"
         super().__init__(**data)
 
 
@@ -55,7 +55,7 @@ class PaginatedResponse(BaseModel, Generic[T]):
         if "request_id" not in data or not data["request_id"]:
             data["request_id"] = str(uuid.uuid4())[:8]
         if "timestamp" not in data or not data["timestamp"]:
-            data["timestamp"] = datetime.utcnow().isoformat() + "Z"
+            data["timestamp"] = datetime.now(timezone.utc).replace(tzinfo=None).isoformat() + "Z"
         super().__init__(**data)
 
 

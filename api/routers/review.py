@@ -3,7 +3,7 @@
 """
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
-from datetime import datetime
+from datetime import datetime, timezone
 
 from api.core.database import get_db
 from api.core.security import get_current_user
@@ -82,7 +82,7 @@ async def approve_record(
     record.review_status = "approved"
     record.reviewer_id = current_user["id"]
     record.review_comment = approve_data.comment
-    record.reviewed_at = datetime.utcnow()
+    record.reviewed_at = datetime.now(timezone.utc).replace(tzinfo=None)
     
     if approve_data.ground_truth is not None:
         record.ground_truth = approve_data.ground_truth
@@ -127,7 +127,7 @@ async def reject_record(
     record.review_status = "rejected"
     record.reviewer_id = current_user["id"]
     record.review_comment = reject_data.reason
-    record.reviewed_at = datetime.utcnow()
+    record.reviewed_at = datetime.now(timezone.utc).replace(tzinfo=None)
     
     if reject_data.ground_truth is not None:
         record.ground_truth = reject_data.ground_truth

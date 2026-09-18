@@ -2,7 +2,7 @@
 租户服务
 """
 from typing import Optional, Dict, Any
-from datetime import datetime
+from datetime import datetime, timezone
 from sqlalchemy.orm import Session
 
 from api.models.db_models import Tenant
@@ -54,10 +54,10 @@ class TenantService:
         if tenant.status != "active":
             return {"valid": False, "reason": "租户已禁用"}
         
-        if tenant.expire_at and tenant.expire_at < datetime.utcnow():
+        if tenant.expire_at and tenant.expire_at < datetime.now(timezone.utc).replace(tzinfo=None):
             return {"valid": False, "reason": "租户已过期"}
         
-        today = datetime.utcnow().strftime("%Y-%m-%d")
+        today = datetime.now(timezone.utc).replace(tzinfo=None).strftime("%Y-%m-%d")
         daily_used, monthly_used = CacheManager.increment_quota(tenant_id, today)
         
         if daily_used > tenant.quota_daily:

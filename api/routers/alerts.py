@@ -3,7 +3,7 @@
 """
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
-from datetime import datetime
+from datetime import datetime, timezone
 
 from api.core.database import get_db
 from api.core.security import get_current_user
@@ -223,7 +223,7 @@ async def acknowledge_alert(
     
     alert.status = "acknowledged"
     alert.acknowledged_by = current_user["id"]
-    alert.acknowledged_at = datetime.utcnow()
+    alert.acknowledged_at = datetime.now(timezone.utc).replace(tzinfo=None)
     
     db.commit()
     
@@ -256,7 +256,7 @@ async def resolve_alert(
     
     alert.status = "resolved"
     alert.resolved_by = current_user["id"]
-    alert.resolved_at = datetime.utcnow()
+    alert.resolved_at = datetime.now(timezone.utc).replace(tzinfo=None)
     alert.resolution_note = resolve_data.resolution
     
     db.commit()

@@ -5,7 +5,7 @@ from fastapi import FastAPI, Request, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from contextlib import asynccontextmanager
-from datetime import datetime
+from datetime import datetime, timezone
 import time
 
 from api.core.config import settings
@@ -110,7 +110,7 @@ async def global_exception_handler(request: Request, exc: Exception):
         details={"detail": str(exc) if settings.DEBUG else "Internal Server Error"},
         retryable=False,
         request_id=str(time.time_ns())[-8:],
-        timestamp=datetime.utcnow().isoformat() + "Z"
+        timestamp=datetime.now(timezone.utc).replace(tzinfo=None).isoformat() + "Z"
     )
     return JSONResponse(
         status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
